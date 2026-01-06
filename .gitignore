@@ -14,12 +14,12 @@ ENV/
 *.weights
 *.onnx
 
-# Output images (test çıktıları)
-output_*.png
-output_*.jpg
+# Output images (test çıktıları) - Web sitesinde kullanılıyor, commit edilmeli
+# output_*.png
+# output_*.jpg
 
-# Screenshots (test görselleri)
-Screenshot*.png
+# Screenshots (test görselleri) - Web sitesinde kullanılıyor, commit edilmeli
+# Screenshot*.png
 
 # IDE
 .vscode/
