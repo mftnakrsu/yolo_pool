@@ -42,3 +42,6 @@ Thumbs.db
 # Node modules (eğer eklenirse)
 node_modules/
 
+# Hardware documentation
+HARDWARE.md
+
