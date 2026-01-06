@@ -91,31 +91,50 @@ if (contactForm) {
         // Simple validation
         if (name && email && message) {
             // Show success message
-            alert('Mesajınız başarıyla gönderildi! En kısa sürede size dönüş yapacağız.');
+            alert('Your message has been sent successfully! We will get back to you soon.');
             contactForm.reset();
         } else {
-            alert('Lütfen tüm alanları doldurun.');
+            alert('Please fill in all fields.');
         }
     });
 }
 
 // CTA Button clicks
-const ctaButtons = document.querySelectorAll('.btn-primary, .btn-secondary');
-ctaButtons.forEach(button => {
-    if (button.textContent.includes('Sipariş') || button.textContent.includes('Başla')) {
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            // Scroll to pricing section
-            const pricingSection = document.getElementById('pricing');
-            if (pricingSection) {
-                const offsetTop = pricingSection.offsetTop - 80;
-                window.scrollTo({
-                    top: offsetTop,
-                    behavior: 'smooth'
-                });
-            }
-        });
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    // Get Started button - scroll to pricing
+    const getStartedButtons = document.querySelectorAll('.btn-primary, .btn-secondary');
+    getStartedButtons.forEach(button => {
+        const buttonText = button.textContent.trim();
+        
+        if (buttonText.includes('Get Started') || buttonText.includes('Order Now')) {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pricingSection = document.getElementById('pricing');
+                if (pricingSection) {
+                    const offsetTop = pricingSection.offsetTop - 80;
+                    window.scrollTo({
+                        top: offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        }
+        
+        // How It Works button - scroll to how-it-works section
+        if (buttonText.includes('How It Works')) {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const howItWorksSection = document.getElementById('how-it-works');
+                if (howItWorksSection) {
+                    const offsetTop = howItWorksSection.offsetTop - 80;
+                    window.scrollTo({
+                        top: offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        }
+    });
 });
 
 // Detection box animation
@@ -201,6 +220,6 @@ window.addEventListener('scroll', () => {
 });
 
 // Console welcome message
-console.log('%c🏊 PoolGuard AI', 'font-size: 20px; font-weight: bold; color: #0066ff;');
-console.log('%cHavuz güvenliğiniz için gelişmiş AI teknolojisi', 'font-size: 12px; color: #666;');
+console.log('%c🏊 PoolGuard', 'font-size: 20px; font-weight: bold; color: #2c5f8d;');
+console.log('%cPool safety monitoring system', 'font-size: 12px; color: #666;');
 
