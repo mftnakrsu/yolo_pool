@@ -719,6 +719,17 @@ body {
     color: var(--text-light);
 }
 
+.contact-item a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.contact-item a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
 .contact-form {
     display: flex;
     flex-direction: column;
