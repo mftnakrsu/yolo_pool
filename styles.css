@@ -439,6 +439,123 @@ body {
     line-height: 1.8;
 }
 
+/* Examples Section */
+.examples {
+    padding: 6rem 0;
+    background: var(--bg-white);
+}
+
+.examples-grid {
+    display: grid;
+    gap: 3rem;
+    margin-top: 3rem;
+}
+
+.example-item {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    transition: all 0.3s;
+}
+
+.example-item:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.example-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.example-header h3 {
+    font-size: 1.5rem;
+    color: var(--text-dark);
+}
+
+.detection-count {
+    background: var(--gradient);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.example-images {
+    margin-top: 1.5rem;
+}
+
+.image-pair {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 2rem;
+    align-items: center;
+}
+
+.image-box {
+    position: relative;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    background: var(--bg-light);
+}
+
+.image-box img {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: transform 0.3s;
+}
+
+.image-box:hover img {
+    transform: scale(1.05);
+}
+
+.image-label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    z-index: 10;
+}
+
+.arrow {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    font-weight: 700;
+    animation: pulse-arrow 2s infinite;
+}
+
+@keyframes pulse-arrow {
+    0%, 100% { transform: translateX(0); opacity: 1; }
+    50% { transform: translateX(10px); opacity: 0.7; }
+}
+
+.examples-note {
+    margin-top: 3rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(0, 102, 255, 0.1) 0%, rgba(0, 212, 255, 0.1) 100%);
+    border-radius: 15px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.examples-note p {
+    color: var(--text-dark);
+    line-height: 1.8;
+    margin: 0;
+}
+
 /* Pricing Section */
 .pricing {
     padding: 6rem 0;
@@ -732,6 +849,27 @@ body {
 
     .pricing-grid {
         grid-template-columns: 1fr;
+    }
+
+    .image-pair {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .arrow {
+        transform: rotate(90deg);
+        text-align: center;
+        margin: 0.5rem 0;
+    }
+
+    .example-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .detection-count {
+        align-self: flex-start;
     }
 }
 
