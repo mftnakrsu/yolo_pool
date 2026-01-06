@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoolGuard AI - Havuz Güvenliği İçin Yapay Zeka</title>
+    <meta name="description" content="AI destekli havuz güvenlik sistemi. 24/7 havuz etrafındaki insanları tespit edin, anında uyarılar alın.">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <span class="logo-icon">🏊</span>
+                    <span class="logo-text">PoolGuard AI</span>
+                </div>
+                <ul class="nav-menu" id="navMenu">
+                    <li><a href="#home">Ana Sayfa</a></li>
+                    <li><a href="#features">Özellikler</a></li>
+                    <li><a href="#how-it-works">Nasıl Çalışır</a></li>
+                    <li><a href="#pricing">Fiyatlandırma</a></li>
+                    <li><a href="#contact">İletişim</a></li>
+                </ul>
+                <button class="btn-primary nav-cta">Sipariş Ver</button>
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        Havuz Güvenliğinin <span class="highlight">Geleceği</span>, Bugün
+                    </h1>
+                    <p class="hero-subtitle">
+                        PoolGuard AI'nın yapay zekası havuzunuzu 7/24 izler ve havuz etrafındaki insanları tespit ederek 
+                        <strong>en erken güvenilir uyarıları</strong> gönderir
+                    </p>
+                    <div class="hero-badges">
+                        <div class="badge">
+                            <span class="badge-icon">👶</span>
+                            <span>Çocuk Tespiti</span>
+                        </div>
+                        <div class="badge">
+                            <span class="badge-icon">👤</span>
+                            <span>Yetişkin Tespiti</span>
+                        </div>
+                        <div class="badge">
+                            <span class="badge-icon">🐕</span>
+                            <span>Evcil Hayvan Tespiti</span>
+                        </div>
+                    </div>
+                    <div class="hero-cta">
+                        <button class="btn-primary btn-large">Hemen Başla</button>
+                        <button class="btn-secondary btn-large">Nasıl Çalışır?</button>
+                    </div>
+                    <p class="hero-note">
+                        ⚡ Gerçek zamanlı tespit • 🔒 Uçtan uca şifreleme • 📱 Anında bildirimler
+                    </p>
+                </div>
+                <div class="hero-image">
+                    <div class="image-placeholder">
+                        <div class="ai-detection-demo">
+                            <div class="detection-box active" style="top: 20%; left: 15%;">
+                                <span>👤 İnsan Tespit Edildi</span>
+                            </div>
+                            <div class="detection-box active" style="top: 60%; left: 70%;">
+                                <span>👶 Çocuk Tespit Edildi</span>
+                            </div>
+                            <div class="pool-visual">
+                                <div class="water-effect"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>PoolGuard AI Özellikleri</h2>
+                <p>Havuz güvenliğiniz için gelişmiş AI teknolojisi</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎥</div>
+                    <h3>HD Video & Canlı Yayın</h3>
+                    <p>Yüksek çözünürlüklü video kaydı ve gerçek zamanlı canlı yayın özelliği</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Gerçek Zamanlı Tespit & Takip</h3>
+                    <p>AI destekli anlık insan tespiti ve hareket takibi sistemi</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔔</div>
+                    <h3>Güvenilir Uyarılar</h3>
+                    <p>Yanlış alarm oranını minimize eden akıllı uyarı sistemi</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Uçtan Uca Şifreleme</h3>
+                    <p>Verilerinizin güvenliği için end-to-end şifreleme teknolojisi</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📅</div>
+                    <h3>7 Günlük Zaman Çizelgesi</h3>
+                    <p>Son 7 günün tüm olaylarını görüntüleyin ve analiz edin</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Güvenlik Modu</h3>
+                    <p>Havuz bölgesinde yetkisiz girişleri tespit eden gelişmiş güvenlik modu</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💧</div>
+                    <h3>Su Altı İnsan Uyarıları</h3>
+                    <p>10+ saniye su altında kalan kişileri tespit eden beta özellik</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👶</div>
+                    <h3>Gözetimsiz Çocuk Uyarıları</h3>
+                    <p>Havuz etrafında yalnız kalan çocukları tespit eden özel uyarı sistemi</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🐕</div>
+                    <h3>Evcil Hayvan Uyarıları</h3>
+                    <p>Havuz bölgesindeki evcil hayvanları tespit eden özel mod</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Unique Section -->
+    <section class="why-unique">
+        <div class="container">
+            <div class="section-header">
+                <h2>PoolGuard AI Neden Benzersiz?</h2>
+            </div>
+            <div class="unique-grid">
+                <div class="unique-item">
+                    <div class="unique-number">01</div>
+                    <h3>Akıllı Ayrım</h3>
+                    <p>Çocuk, yetişkin ve evcil hayvanları ayırt eden <strong>tek sistem</strong> - güvenilir uyarılar için</p>
+                </div>
+                <div class="unique-item">
+                    <div class="unique-number">02</div>
+                    <h3>Senaryo Anlayışı</h3>
+                    <p>Durum analizine dayalı akıllı AI bildirimleri ve uyarıları</p>
+                </div>
+                <div class="unique-item">
+                    <div class="unique-number">03</div>
+                    <h3>Sürekli Öğrenme</h3>
+                    <p>Zamanla <strong>'öğrenir'</strong> ve sürekli olarak gelişir</p>
+                </div>
+                <div class="unique-item">
+                    <div class="unique-number">04</div>
+                    <h3>Su Altı Tespiti</h3>
+                    <p>10+ saniye su altında kalan kişileri tespit eder <em>(Beta)</em></p>
+                </div>
+                <div class="unique-item">
+                    <div class="unique-number">05</div>
+                    <h3>Otomatik Yeniden Aktivasyon</h3>
+                    <p>Kapatılmadığı sürece otomatik olarak yeniden devreye girer</p>
+                </div>
+                <div class="unique-item">
+                    <div class="unique-number">06</div>
+                    <h3>Havuz Sahipleri İçin Tasarlandı</h3>
+                    <p>Daha fazla özellik yakında geliyor!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <h2>Nasıl Çalışır?</h2>
+                <p>3 basit adımda havuz güvenliğinizi sağlayın</p>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Kurulum</h3>
+                        <p>PoolGuard AI kamerasını havuz bölgenize kurun. WiFi bağlantısı yapın ve uygulamayı indirin.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>AI Tespit</h3>
+                        <p>Yapay zeka sistemi 7/24 havuz etrafındaki insanları, çocukları ve evcil hayvanları tespit eder.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Anında Uyarılar</h3>
+                        <p>Potansiyel risk tespit edildiğinde telefonunuza anında bildirim gelir.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2>Fiyatlandırma</h2>
+                <p>İhtiyacınıza uygun planı seçin</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>PoolGuard Basic</h3>
+                        <p class="pricing-subtitle">Abonelik yok</p>
+                        <div class="price">
+                            <span class="currency">₺</span>
+                            <span class="amount">12,000</span>
+                        </div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>✅ Güvenlik modu</li>
+                        <li>✅ Evcil hayvan tespiti</li>
+                        <li>✅ Otomatik yeniden aktivasyon</li>
+                        <li>✅ Aktivite bölgeleri</li>
+                        <li>✅ Canlı yayın</li>
+                        <li>✅ Olay kayıtları</li>
+                        <li>✅ Otomatik havuz tespiti</li>
+                        <li>✅ Havuz kullanımında uyarı</li>
+                        <li>❌ Evcil hayvan havuzda</li>
+                        <li>❌ Gözetimsiz çocuk uyarıları</li>
+                        <li>❌ Su altı insan uyarısı</li>
+                        <li>❌ Canlı sayaç</li>
+                    </ul>
+                    <button class="btn-outline">Sipariş Ver</button>
+                </div>
+                <div class="pricing-card featured">
+                    <div class="popular-badge">Popüler</div>
+                    <div class="pricing-header">
+                        <h3>PoolGuard Premium</h3>
+                        <p class="pricing-subtitle">Abonelik ile</p>
+                        <div class="price">
+                            <span class="currency">₺</span>
+                            <span class="amount">15,000</span>
+                            <span class="period">+ ₺599/ay</span>
+                        </div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>✅ Tüm Basic özellikler</li>
+                        <li>✅ Evcil hayvan havuzda</li>
+                        <li>✅ Gözetimsiz çocuk uyarıları</li>
+                        <li>✅ Su altı insan uyarısı (Beta)</li>
+                        <li>✅ Canlı sayaç</li>
+                        <li>✅ Tespitli canlı yayın</li>
+                        <li>✅ İnşaat modu</li>
+                        <li>✅ Yanlış uyarılardan öğrenme</li>
+                        <li>✅ 7 günlük zaman çizelgesi</li>
+                        <li>✅ Sınırsız aile/konuk daveti</li>
+                        <li>✅ 8 saat destek yanıt süresi</li>
+                    </ul>
+                    <button class="btn-primary">Sipariş Ver</button>
+                </div>
+            </div>
+            <p class="pricing-disclaimer">
+                <strong>Önemli:</strong> PoolGuard AI, sürekli yetişkin gözetiminin yerini tutmaz. 
+                Havuz güvenliği için gerekli tüm önlemler alınmalıdır.
+            </p>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Kesintisiz İzleme</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">&lt;1sn</div>
+                    <div class="stat-label">Tespit Süresi</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">99.9%</div>
+                    <div class="stat-label">Doğruluk Oranı</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">10,000+</div>
+                    <div class="stat-label">Sinyal/Saniye Analizi</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="section-header">
+                <h2>Daha Fazla Bilgi İster misiniz?</h2>
+                <p>Bizimle iletişime geçin</p>
+            </div>
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <div class="contact-icon">📧</div>
+                        <div>
+                            <h4>E-posta</h4>
+                            <p>info@poolguard.ai</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📞</div>
+                        <div>
+                            <h4>Telefon</h4>
+                            <p>+90 (555) 123-4567</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">💬</div>
+                        <div>
+                            <h4>Destek</h4>
+                            <p>7/24 müşteri desteği</p>
+                        </div>
+                    </div>
+                </div>
+                <form class="contact-form">
+                    <input type="text" placeholder="Adınız" required>
+                    <input type="email" placeholder="E-posta Adresiniz" required>
+                    <textarea placeholder="Mesajınız" rows="5" required></textarea>
+                    <button type="submit" class="btn-primary">Gönder</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo">
+                        <span class="logo-icon">🏊</span>
+                        <span class="logo-text">PoolGuard AI</span>
+                    </div>
+                    <p>Havuz güvenliğiniz için gelişmiş AI teknolojisi</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Şirket</h4>
+                    <ul>
+                        <li><a href="#about">Hakkımızda</a></li>
+                        <li><a href="#contact">İletişim</a></li>
+                        <li><a href="#careers">Kariyer</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Kaynaklar</h4>
+                    <ul>
+                        <li><a href="#pricing">Fiyatlandırma</a></li>
+                        <li><a href="#docs">Dokümantasyon</a></li>
+                        <li><a href="#faq">SSS</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Yasal</h4>
+                    <ul>
+                        <li><a href="#privacy">Gizlilik Politikası</a></li>
+                        <li><a href="#terms">Kullanım Şartları</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 PoolGuard AI. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
