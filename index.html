@@ -9,6 +9,32 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Hide content until auth check is complete */
+        body {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        body.auth-checked {
+            opacity: 1;
+        }
+    </style>
+    <script>
+        // Check authentication immediately, before page renders
+        (function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true' || 
+                              sessionStorage.getItem('isLoggedIn') === 'true';
+            
+            if (!isLoggedIn) {
+                window.location.replace('login.html');
+            } else {
+                // Show content if logged in
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.body.classList.add('auth-checked');
+                });
+            }
+        })();
+    </script>
 </head>
 <body>
     <!-- Navigation -->
@@ -488,15 +514,15 @@
 
     <script src="script.js"></script>
     <script>
-        // Check if user is logged in, if not redirect to login
-        (function() {
+        // Show content after page loads (if still on page)
+        document.addEventListener('DOMContentLoaded', function() {
             const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true' || 
                               sessionStorage.getItem('isLoggedIn') === 'true';
             
-            if (!isLoggedIn) {
-                window.location.href = 'login.html';
+            if (isLoggedIn) {
+                document.body.classList.add('auth-checked');
             }
-        })();
+        });
     </script>
 </body>
 </html>
