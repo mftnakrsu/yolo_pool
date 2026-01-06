@@ -487,5 +487,16 @@
     </footer>
 
     <script src="script.js"></script>
+    <script>
+        // Check if user is logged in, if not redirect to login
+        (function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true' || 
+                              sessionStorage.getItem('isLoggedIn') === 'true';
+            
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
 </body>
 </html>
