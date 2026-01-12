@@ -45,3 +45,18 @@ node_modules/
 # Hardware documentation
 HARDWARE.md
 
+# Large Video Files (Original Sources)
+WhatsApp Video *.mp4
+demo_havuz.mov
+demo_output.mp4
+demo_result_clean.mp4
+
+# Datasets
+child_adult_dataset/
+child and adult annotation.v1i.yolov8.zip
+
+# Output Media (Keep demos/ folder, ignore others if needed)
+# output_*.mp4
+# But we want to track demos/ so we don't ignore it.
+
+
