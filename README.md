@@ -2,12 +2,25 @@
 
 YOLOv8 tabanli havuz guvenlik ve bogulma tespit sistemi. Pose estimation kullanarak havuzdaki kisileri takip eder ve potansiyel bogulma durumlarini tespit eder.
 
+![PoolGuard Demo](test_result_pose.png)
+
 ## Ozellikler
 
 - **Pose Detection**: YOLOv8-pose modeli ile 17 keypoint tespiti
 - **Kisi Takibi**: ByteTrack ile coklu kisi takibi
 - **Bogulma Tespiti**: Hareket analizi + poz analizi ile erken uyari
-- **Cocuk/Yetiskin Siniflandirma**: Ozel egitilmis model destegi
+- **Modern Web Arayüzü**: Karanlık mod gösterge paneli ve video galerisi
+- **Canlı Uyarılar**: Tehlike anında görsel geri bildirim
+
+## Web Arayüzü
+
+Proje, tespit sonuçlarını izleyebileceğiniz modern bir web arayüzü içerir:
+
+1. `index.html` dosyasını tarayıcınızda açın.
+2. İşlenmiş videoları galeriden seçin.
+3. Tehlike durumlarını ve yüzme analizini canlı izleyin.
+
+![Web Interface](Screenshot%202026-01-06%20at%2023.45.34.png)
 
 ## Bogulma Tespit Algoritmasi
 
