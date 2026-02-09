@@ -1,223 +1,175 @@
-# YOLO Pool - Havuz Guvenlik Sistemi
+# YOLO Pool - Swimming Pool Safety System
 
-YOLOv8 tabanli havuz guvenlik ve bogulma tespit sistemi. Pose estimation kullanarak havuzdaki kisileri takip eder ve potansiyel bogulma durumlarini tespit eder.
+A real-time pool safety system that detects **adults and children** around swimming pools using a custom-trained YOLOv26m model, combined with **pose estimation** for skeleton visualization and **drowning detection** through movement and head visibility analysis.
 
-![PoolGuard Demo](test_result_pose.png)
+## Features
 
-## Ozellikler
+- **Dual-Model Architecture**: Custom YOLOv26m for adult/child classification + YOLOv8-pose for skeleton keypoints
+- **Drowning Detection**: Automatic alerts based on stationary behavior and head visibility
+- **Pose Estimation**: 17-point COCO skeleton overlay with color-coded joints
+- **Multi-Person Tracking**: ByteTrack-based tracking with per-person danger scoring
+- **Real-time Webcam**: Live detection with FPS display and adjustable confidence
+- **Video/Image Processing**: Batch processing with H.264 output
 
-- **Pose Detection**: YOLOv8-pose modeli ile 17 keypoint tespiti
-- **Kisi Takibi**: ByteTrack ile coklu kisi takibi
-- **Bogulma Tespiti**: Hareket analizi + poz analizi ile erken uyari
-- **Modern Web Arayüzü**: Karanlık mod gösterge paneli ve video galerisi
-- **Canlı Uyarılar**: Tehlike anında görsel geri bildirim
+## How It Works
 
-## Web Arayüzü
+The system runs two YOLO models simultaneously on each frame:
 
-Proje, tespit sonuçlarını izleyebileceğiniz modern bir web arayüzü içerir:
+1. **Custom YOLOv26m** detects people and classifies them as `adult` or `child`
+2. **YOLOv8-pose** extracts 17 body keypoints per person
+3. Detections are matched to pose data via **IoU** (Intersection over Union)
+4. Each person is tracked over time to analyze movement patterns
 
-1. `index.html` dosyasını tarayıcınızda açın.
-2. İşlenmiş videoları galeriden seçin.
-3. Tehlike durumlarını ve yüzme analizini canlı izleyin.
+### Drowning Detection Algorithm
 
-![Web Interface](Screenshot%202026-01-06%20at%2023.45.34.png)
+| Status | Color | Condition |
+|--------|-------|-----------|
+| Active | Green | Normal movement detected |
+| Stationary | Yellow | No movement for 5+ seconds |
+| STATIONARY (Danger) | Orange | No movement for 10+ seconds |
+| DROWNING ALERT! | Red | 10+ seconds stationary + head not visible |
 
-## Bogulma Tespit Algoritmasi
-
-Sistem asagidaki kriterlere gore bogulma tespiti yapar:
-
-1. **Hareket Analizi**: Kisi 5+ saniye hareketsiz kalirsa uyari
-2. **Poz Analizi**: Bas/yuz keypoint'leri gorunmuyorsa tehlike skoru artar
-3. **Tehlike Skorlama**:
-   - `Active` (Yesil): Normal hareket
-   - `Stationary` (Sari): 5+ saniye hareketsiz
-   - `STATIONARY (Danger)` (Turuncu): 10+ saniye hareketsiz
-   - `DROWNING ALERT!` (Kirmizi): Hareketsiz + bas gorunmuyor
-
-## Jetson Nano Kurulumu
-
-### Gereksinimler
-
-- Jetson Nano (4GB onerilir)
-- JetPack 4.6+
-- Python 3.8+
-- USB Kamera veya IP Kamera
-
-### 1. Sistem Hazirlik
+## Installation
 
 ```bash
-# Sistem guncelleme
-sudo apt update && sudo apt upgrade -y
-
-# Swap alanini artir (8GB onerilir)
-sudo fallocate -l 8G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-```
-
-### 2. Python Ortami
-
-```bash
-# Virtual environment olustur
-python3 -m venv venv
-source venv/bin/activate
-
-# Pip guncelle
-pip install --upgrade pip
-```
-
-### 3. PyTorch Kurulumu (Jetson icin)
-
-```bash
-# PyTorch 1.10+ for Jetson
-wget https://nvidia.box.com/shared/static/fjtbno0vpo676a25cgvuqc1wty0fkkg6.whl -O torch-1.10.0-cp36-cp36m-linux_aarch64.whl
-pip install torch-1.10.0-cp36-cp36m-linux_aarch64.whl
-
-# torchvision
-sudo apt-get install libjpeg-dev zlib1g-dev libpython3-dev
-git clone --branch v0.11.1 https://github.com/pytorch/vision torchvision
-cd torchvision
-pip install -e .
-cd ..
-```
-
-### 4. Proje Kurulumu
-
-```bash
-# Repo'yu klonla
 git clone https://github.com/mftnakrsu/yolo_pool.git
 cd yolo_pool
-
-# Gereksinimleri yukle
-pip install ultralytics opencv-python numpy
-
-# Model indir (ilk calistirmada otomatik iner)
-# yolov8n-pose.pt (hafif, hizli)
-# yolov8m-pose.pt (dengeli)
-# yolov8l-pose.pt (yuksek dogruluk)
+pip install -r requirements.txt
 ```
 
-### 5. Performans Optimizasyonu
+### Requirements
+
+- Python 3.8+
+- CUDA-compatible GPU (recommended)
+
+## Usage
+
+### Video Processing
 
 ```bash
-# Jetson performans modu
-sudo nvpmodel -m 0
-sudo jetson_clocks
-
-# TensorRT export (opsiyonel, hiz icin)
-yolo export model=yolov8n-pose.pt format=engine device=0
-```
-
-## Kullanim
-
-### Video Dosyasi Isleme
-
-```bash
-# Temel kullanim
+# With custom model + pose estimation
 python pool_person_detection.py -i video.mp4 -o output.mp4
 
-# YOLOv8m-pose ile (daha iyi dogruluk)
-python pool_person_detection.py -i video.mp4 -o output.mp4 -m yolov8m-pose.pt
+# Specify models explicitly
+python pool_person_detection.py -i video.mp4 -o output.mp4 \
+    --model best_pool_adult_child.pt \
+    --pose-model yolov8n-pose.pt
 
-# Onizleme olmadan (headless server)
+# Headless (no preview window)
 python pool_person_detection.py -i video.mp4 -o output.mp4 --no-preview
 ```
 
-### Webcam / USB Kamera
+### Image Processing
 
 ```bash
-# Varsayilan kamera
+python pool_person_detection.py -i photo.jpg -o result.jpg
+```
+
+### Webcam (Real-time)
+
+```bash
+# Basic
 python pool_person_detection.py --webcam
 
-# Belirli kamera index'i
-python pool_person_detection.py --webcam 0
+# Advanced real-time with FPS display and controls
+python realtime_detection.py
+
+# With custom settings
+python realtime_detection.py --model best_pool_adult_child.pt --conf 0.4 --camera 0
 ```
 
-### IP Kamera (RTSP)
+**Real-time controls:**
+| Key | Action |
+|-----|--------|
+| `q` | Quit |
+| `s` | Save screenshot |
+| `+` / `-` | Adjust confidence threshold |
+
+### IP Camera (RTSP)
 
 ```bash
-# RTSP stream
-python pool_person_detection.py -i "rtsp://username:password@ip:port/stream"
+python pool_person_detection.py -i "rtsp://user:pass@ip:port/stream"
 ```
 
-### Parametreler
+### Parameters
 
-| Parametre | Aciklama | Varsayilan |
-|-----------|----------|------------|
-| `-i, --input` | Giris video/resim yolu | - |
-| `-o, --output` | Cikis dosyasi yolu | - |
-| `-m, --model` | YOLO model dosyasi | yolov8n-pose.pt |
-| `-c, --conf` | Guven esigi (0-1) | 0.25 |
-| `--webcam` | Webcam kullan | False |
-| `--no-preview` | Onizleme gosterme | False |
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `-i, --input` | Input video/image path | - |
+| `-o, --output` | Output file path | - |
+| `-m, --model` | Custom detection model | `best_pool_adult_child.pt` |
+| `-p, --pose-model` | Pose estimation model | `yolov8n-pose.pt` |
+| `-c, --conf` | Confidence threshold (0-1) | `0.25` |
+| `-w, --webcam` | Use webcam | `False` |
+| `--no-preview` | Disable live preview | `False` |
 
-## Model Secimi
+## Training Your Own Model
 
-| Model | Boyut | FPS (Jetson) | Dogruluk |
-|-------|-------|--------------|----------|
-| yolov8n-pose.pt | 6MB | ~15-20 | Dusuk |
-| yolov8s-pose.pt | 23MB | ~10-15 | Orta |
-| yolov8m-pose.pt | 52MB | ~5-8 | Iyi |
-| yolov8l-pose.pt | 84MB | ~3-5 | Yuksek |
+The project includes a ready-to-use Google Colab training pipeline.
 
-**Oneri**: Jetson Nano icin `yolov8n-pose.pt` veya TensorRT export edilmis model kullanin.
+### Dataset Preparation
 
-## Dosya Yapisi
+1. Label your images with 2 classes: `adult` (0) and `child` (1) using [CVAT](https://www.cvat.ai/) or [Roboflow](https://roboflow.com/)
+2. Export labels in YOLO format
+3. Upload images and labels to Google Drive
+
+### Training on Colab
+
+1. Upload `train_colab.ipynb` to Google Colab
+2. Set runtime to **GPU** (T4 or better)
+3. Run all cells - the notebook will:
+   - Mount your Drive and extract the dataset
+   - Analyze class distribution
+   - Split into train/val/test (80/15/5)
+   - Train YOLOv26m for 100 epochs
+   - Save the best model to Drive
+
+```bash
+# Or use the auto-labeling script to generate initial labels
+python auto_label.py
+```
+
+## Project Structure
 
 ```
 yolo_pool/
-├── pool_person_detection.py  # Ana tespit scripti
-├── train_child_adult.py      # Cocuk/yetiskin model egitimi
-├── colab_train.py            # Google Colab egitim scripti
-├── split_videos.py           # Video bolme araci
-├── demos/                    # Demo videolari
-│   ├── output_whatsapp1_pose.mp4
-│   ├── output_whatsapp2_pose.mp4
-│   └── output_whatsapp3_pose.mp4
+├── pool_person_detection.py      # Main: dual model detection + pose + drowning
+├── realtime_detection.py         # Real-time webcam detection
+├── train_colab.py                # Google Colab training script
+├── train_colab.ipynb             # Colab notebook (same as above)
+├── auto_label.py                 # Auto-labeling with pretrained model
+├── add_pose_to_videos.py         # Add pose overlay to existing videos
+├── extract_frames.py             # Extract frames from videos for labeling
+├── batch_process_stylish.py      # Batch video processing with styled output
+├── process_child_adult_video.py  # Child-alone warning system
+├── split_videos.py               # Video segmentation utility
+├── requirements.txt              # Python dependencies
 └── README.md
 ```
 
-## Demo Videolar
+## Model Selection
 
-Demo ciktilarini `demos/` klasorunde bulabilirsiniz. Bu videolar YOLOv8m-pose modeli ile islenmistir.
+| Model | Size | Use Case |
+|-------|------|----------|
+| `yolov8n-pose.pt` | 6 MB | Lightweight pose estimation (edge devices) |
+| `yolov8m-pose.pt` | 52 MB | Balanced pose estimation |
+| `yolo26m.pt` | 44 MB | Base detection model |
+| `best_pool_adult_child.pt` | ~44 MB | Custom trained adult/child detector |
 
-## Sorun Giderme
+## Edge Deployment (Jetson Nano)
 
-### Jetson Nano Bellek Hatasi
 ```bash
-# Swap alanini kontrol et
-free -h
-
-# Model boyutunu dusur
-python pool_person_detection.py -m yolov8n-pose.pt ...
-```
-
-### Dusuk FPS
-```bash
-# Performans modunu aktifle
+# Performance mode
 sudo nvpmodel -m 0
 sudo jetson_clocks
 
-# TensorRT kullan
-yolo export model=yolov8n-pose.pt format=engine
-python pool_person_detection.py -m yolov8n-pose.engine ...
+# Export to TensorRT for faster inference
+yolo export model=best_pool_adult_child.pt format=engine device=0
+
+# Run with TensorRT model
+python pool_person_detection.py -i video.mp4 --model best_pool_adult_child.engine
 ```
 
-### Kamera Acilamadi
-```bash
-# Kamera kontrol
-ls /dev/video*
-
-# OpenCV test
-python -c "import cv2; print(cv2.VideoCapture(0).isOpened())"
-```
-
-## Lisans
+## License
 
 MIT License
-
-## Katkida Bulunma
-
-Pull request'ler memnuniyetle karsilanir. Buyuk degisiklikler icin once bir issue aciniz.

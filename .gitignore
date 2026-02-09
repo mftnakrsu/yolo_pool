@@ -54,6 +54,8 @@ demo_result_clean.mp4
 # Datasets
 child_adult_dataset/
 child and adult annotation.v1i.yolov8.zip
+dataset_new/
+extracted_frames/
 
 # Output Media (Keep demos/ folder, ignore others if needed)
 # output_*.mp4

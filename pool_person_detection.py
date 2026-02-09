@@ -1,6 +1,10 @@
 """
-YOLO ile Havuz Etrafındaki İnsan Tespiti
-Bu script, YOLOv8 kullanarak havuz etrafındaki insanları tespit eder.
+Pool Safety System - Adult/Child Detection + Pose Estimation
+Uses dual YOLO models:
+  1. Custom YOLOv26m -> adult/child classification (bounding boxes)
+  2. YOLOv8-pose   -> skeleton keypoints (17 COCO keypoints)
+
+Drowning detection via movement analysis + head visibility check.
 """
 
 import cv2
@@ -8,126 +12,176 @@ import numpy as np
 from ultralytics import YOLO
 from pathlib import Path
 import argparse
-
-
 from collections import defaultdict
 import time
 
+
 class PoolPersonDetector:
-    """Havuz etrafındaki insanları ve potansiyel tehlikeleri tespit eden sınıf"""
-    
-    def __init__(self, model_path='yolov8n-pose.pt', conf_threshold=0.25):
+    """Dual-model pool safety detector: custom detection + pose estimation"""
+
+    # COCO skeleton connections (1-indexed pairs)
+    SKELETON = [
+        [16, 14], [14, 12], [17, 15], [15, 13], [12, 13],  # legs
+        [6, 12], [7, 13],   # torso-legs
+        [6, 7],              # shoulders
+        [6, 8], [7, 9],     # upper arms
+        [8, 10], [9, 11],   # lower arms
+        [2, 3], [1, 2], [1, 3],  # face
+        [2, 4], [3, 5],     # ears
+        [4, 6], [5, 7]      # ear-shoulder
+    ]
+
+    # Left/right keypoint indices for coloring
+    LEFT_INDICES = {1, 3, 5, 7, 9, 11, 13, 15}
+    RIGHT_INDICES = {2, 4, 6, 8, 10, 12, 14, 16}
+
+    def __init__(self, model_path='best_pool_adult_child.pt',
+                 pose_model_path='yolov8n-pose.pt',
+                 conf_threshold=0.25):
         """
         Args:
-            model_path: YOLO model dosyası yolu (varsayılan: yolov8n-pose.pt)
-            conf_threshold: Güven eşiği (0-1 arası)
+            model_path: Custom detection model (adult/child)
+            pose_model_path: Pose estimation model (skeleton)
+            conf_threshold: Detection confidence threshold
         """
-        self.model = YOLO(model_path)
+        self.det_model = YOLO(model_path)
+        self.pose_model = YOLO(pose_model_path)
         self.conf_threshold = conf_threshold
-        
-        # Tracking history
+
+        # Tracking history (per person ID)
         self.track_history = defaultdict(lambda: {
-            'positions': [], # List of (x, y) tuples
+            'positions': [],
             'last_seen': 0,
             'danger_score': 0,
-            'status': 'Normal' # Normal, Warning, Drowning
         })
-        
-        # Parameters for heuristics
-        self.fps = 30 # Will be updated from video
-        self.stationary_threshold_seconds = 5.0 # Seconds to trigger stationary warning
-        self.drowning_threshold_seconds = 10.0 # Seconds to trigger drowning alert
-        self.movement_threshold = 20 # Pixels (minimum movement to be considered "moving")
-        
+
+        # Timing parameters
+        self.fps = 30
+        self.stationary_threshold_seconds = 5.0
+        self.drowning_threshold_seconds = 10.0
+        self.movement_threshold = 20  # pixels
+
     def detect_and_track(self, image):
         """
-        Görüntüdeki insanları takip eder ve pozlarını analiz eder
+        Run dual-model detection on a single frame.
+        Returns (results, annotated_image).
         """
-        # YOLO ile takip yap (persist=True önemli)
-        results = self.model.track(image, persist=True, conf=self.conf_threshold, verbose=False)
-        
-        # Use original image (not .plot()) to avoid duplicate labels
-        annotated_image = image.copy()
-        
+        # 1) Custom model: adult/child detection with tracking
+        det_results = self.det_model.track(
+            image, persist=True, conf=self.conf_threshold, verbose=False
+        )
+
+        # 2) Pose model: skeleton keypoints (no tracking needed)
+        pose_results = self.pose_model(
+            image, conf=self.conf_threshold, verbose=False
+        )
+
+        annotated = image.copy()
         current_time = time.time()
-        
-        if results[0].boxes and results[0].boxes.id is not None:
-            boxes = results[0].boxes.xywh.cpu()
-            track_ids = results[0].boxes.id.int().cpu().tolist()
-            class_ids = results[0].boxes.cls.int().cpu().tolist()
-            confs = results[0].boxes.conf.cpu().tolist()
 
-            # Check if keypoints exist (pose model vs detection model)
-            has_keypoints = results[0].keypoints is not None
-            keypoints_data = results[0].keypoints.data.cpu() if has_keypoints else None
+        # Extract pose boxes & keypoints
+        pose_boxes = []
+        pose_keypoints = []
+        if pose_results[0].boxes is not None and pose_results[0].keypoints is not None:
+            pose_boxes = pose_results[0].boxes.xyxy.cpu().numpy()
+            pose_keypoints = pose_results[0].keypoints.data.cpu()
 
-            for i, (box, track_id, cls_id, conf) in enumerate(zip(boxes, track_ids, class_ids, confs)):
+        # Process detection results
+        det = det_results[0]
+        if det.boxes and det.boxes.id is not None:
+            boxes = det.boxes.xywh.cpu()
+            xyxy_boxes = det.boxes.xyxy.cpu().numpy()
+            track_ids = det.boxes.id.int().cpu().tolist()
+            class_ids = det.boxes.cls.int().cpu().tolist()
+            confs = det.boxes.conf.cpu().tolist()
+
+            for i, (box, track_id, cls_id, conf) in enumerate(
+                zip(boxes, track_ids, class_ids, confs)
+            ):
                 x, y, w, h = box
                 center = (float(x), float(y))
-                class_name = self.model.names[cls_id]
+                class_name = self.det_model.names[cls_id]
 
-                # Get keypoints for this person if available
-                kpts = keypoints_data[i] if has_keypoints else None
+                # Match detection box to pose keypoints via IoU
+                kpts = self._match_pose(xyxy_boxes[i], pose_boxes, pose_keypoints)
 
-                # Update history
+                # Update tracking history
                 history = self.track_history[track_id]
                 history['last_seen'] = current_time
                 history['positions'].append(center)
 
-                # Keep only recent history (last 10 seconds approx)
                 max_history = int(self.fps * 15)
                 if len(history['positions']) > max_history:
                     history['positions'] = history['positions'][-max_history:]
 
-                # Draw keypoints (skeleton) first
+                # Draw skeleton
                 if kpts is not None:
-                    self._draw_keypoints(annotated_image, kpts)
+                    self._draw_keypoints(annotated, kpts)
 
-                # Analyze Status
+                # Analyze danger status
                 status, color = self._analyze_status(track_id, kpts)
 
-                # Draw Status on Image
-                self._draw_status(annotated_image, box, status, color, track_id, class_name, conf)
-                
-        return results, annotated_image
-    
+                # Draw bounding box and label
+                self._draw_status(annotated, box, status, color, track_id, class_name, conf)
+
+        return det_results, annotated
+
+    def _match_pose(self, det_box, pose_boxes, pose_keypoints):
+        """Match a detection bbox to the closest pose bbox using IoU."""
+        if len(pose_boxes) == 0:
+            return None
+
+        best_iou = 0.0
+        best_idx = -1
+
+        for j, pbox in enumerate(pose_boxes):
+            iou = self._compute_iou(det_box, pbox)
+            if iou > best_iou:
+                best_iou = iou
+                best_idx = j
+
+        if best_iou > 0.3 and best_idx >= 0:
+            return pose_keypoints[best_idx]
+        return None
+
+    @staticmethod
+    def _compute_iou(box1, box2):
+        """Compute IoU between two [x1, y1, x2, y2] boxes."""
+        x1 = max(box1[0], box2[0])
+        y1 = max(box1[1], box2[1])
+        x2 = min(box1[2], box2[2])
+        y2 = min(box1[3], box2[3])
+
+        inter = max(0, x2 - x1) * max(0, y2 - y1)
+        area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
+        area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
+        union = area1 + area2 - inter
+
+        return inter / union if union > 0 else 0.0
+
     def _draw_keypoints(self, image, keypoints):
-        """
-        Keypoint'leri ve iskelet baglantilarini cizer
-        COCO 17 keypoint formati
-        """
-        # COCO skeleton connections
-        skeleton = [
-            [16, 14], [14, 12], [17, 15], [15, 13], [12, 13],  # bacaklar
-            [6, 12], [7, 13],  # govde-bacak
-            [6, 7],  # omuzlar
-            [6, 8], [7, 9],  # kollar ust
-            [8, 10], [9, 11],  # kollar alt
-            [2, 3], [1, 2], [1, 3],  # yuz
-            [2, 4], [3, 5],  # kulaklar
-            [4, 6], [5, 7]  # kulak-omuz
-        ]
+        """Draw pose skeleton on image using COCO 17 keypoint format."""
+        kpt_color = (0, 255, 255)     # yellow (center)
+        left_color = (255, 128, 0)    # orange (left side)
+        right_color = (51, 153, 255)  # blue (right side)
 
-        # Keypoint renkleri (sag-sol farkli)
-        kpt_color = (0, 255, 255)  # Sari
-        left_color = (255, 128, 0)  # Turuncu (sol taraf)
-        right_color = (51, 153, 255)  # Mavi (sag taraf)
-
-        # Keypoint'leri ciz
+        # Draw keypoint dots
         for idx, kpt in enumerate(keypoints):
             x, y, conf = kpt
             if conf > 0.5:
-                color = kpt_color
-                if idx in [1, 3, 5, 7, 9, 11, 13, 15]:  # Sol taraf
+                if idx in self.LEFT_INDICES:
                     color = left_color
-                elif idx in [2, 4, 6, 8, 10, 12, 14, 16]:  # Sag taraf
+                elif idx in self.RIGHT_INDICES:
                     color = right_color
+                else:
+                    color = kpt_color
                 cv2.circle(image, (int(x), int(y)), 3, color, -1)
                 cv2.circle(image, (int(x), int(y)), 4, (0, 0, 0), 1)
 
-        # Iskelet cizgilerini ciz
-        for connection in skeleton:
-            idx1, idx2 = connection[0] - 1, connection[1] - 1  # 0-indexed
+        # Draw skeleton lines
+        for idx1, idx2 in self.SKELETON:
+            idx1 -= 1  # convert to 0-indexed
+            idx2 -= 1
             if idx1 < len(keypoints) and idx2 < len(keypoints):
                 kpt1, kpt2 = keypoints[idx1], keypoints[idx2]
                 if kpt1[2] > 0.5 and kpt2[2] > 0.5:
@@ -136,257 +190,254 @@ class PoolPersonDetector:
                     cv2.line(image, pt1, pt2, (0, 255, 0), 1, cv2.LINE_AA)
 
     def _analyze_status(self, track_id, keypoints):
-        """
-        Analyze person status based on movement and pose
-        """
+        """Analyze person status based on movement and head visibility."""
         history = self.track_history[track_id]
         positions = history['positions']
-        
-        # Check if we have enough data
-        min_frames = int(self.fps * 2) # Check last 2 seconds
+
+        min_frames = int(self.fps * 2)
         if len(positions) < min_frames:
             return "Analyzing...", (255, 255, 0)
-            
-        # 1. Movement Analysis (Stationary check)
-        # Compare current position with position 2 seconds ago
-        recent_pos = positions[-min_frames:]
-        start_pos = recent_pos[0]
-        end_pos = recent_pos[-1]
-        
-        movement = np.sqrt((end_pos[0] - start_pos[0])**2 + (end_pos[1] - start_pos[1])**2)
-        
+
+        # Movement analysis
+        recent = positions[-min_frames:]
+        dx = recent[-1][0] - recent[0][0]
+        dy = recent[-1][1] - recent[0][1]
+        movement = np.sqrt(dx * dx + dy * dy)
         is_stationary = movement < self.movement_threshold
-        
-        # 2. Pose Analysis (Head visibility check) - only if keypoints available
-        head_visible = True  # Default to True if no keypoints (can't detect drowning)
+
+        # Head visibility (keypoints 0-4: nose, eyes, ears)
+        head_visible = True
         if keypoints is not None:
-            # COCO Keypoints: 0: Nose, 1: Left Eye, 2: Right Eye, 3: Left Ear, 4: Right Ear
-            head_indices = [0, 1, 2, 3, 4]
             head_visible = False
-            for idx in head_indices:
-                if keypoints.shape[0] > idx and keypoints[idx][2] > 0.5:
+            for idx in range(5):
+                if idx < len(keypoints) and keypoints[idx][2] > 0.5:
                     head_visible = True
                     break
-        
-        # Update Danger Score
+
+        # Update danger score
         if is_stationary:
             history['danger_score'] += 1
         else:
-            # Decrease danger score if moving (recovery)
             history['danger_score'] = max(0, history['danger_score'] - 2)
-            
+
         score = history['danger_score']
-        
-        # Determine Status
-        if score > (self.drowning_threshold_seconds * self.fps):
+
+        # Determine status
+        if score > self.drowning_threshold_seconds * self.fps:
             if not head_visible:
-                return "DROWNING ALERT!", (0, 0, 255) # Red
-            else:
-                return "STATIONARY (Danger)", (0, 165, 255) # Orange
-        elif score > (self.stationary_threshold_seconds * self.fps):
-            return "Stationary", (0, 255, 255) # Yellow
-        else:
-            return "Active", (0, 255, 0) # Green
+                return "DROWNING ALERT!", (0, 0, 255)     # red
+            return "STATIONARY (Danger)", (0, 165, 255)    # orange
+        elif score > self.stationary_threshold_seconds * self.fps:
+            return "Stationary", (0, 255, 255)             # yellow
+        return "Active", (0, 255, 0)                       # green
 
     def _draw_status(self, image, box, status, color, track_id, class_name="", conf=0.0):
+        """Draw bounding box, label, and status for a detected person."""
         x, y, w, h = box
+        x1, y1 = int(x - w / 2), int(y - h / 2)
+        x2, y2 = int(x + w / 2), int(y + h / 2)
 
-        x1, y1 = int(x - w/2), int(y - h/2)
-        x2, y2 = int(x + w/2), int(y + h/2)
-
-        # Renk paleti (class'a göre)
+        # Color by class
         if class_name == 'child':
-            box_color = (255, 147, 0)  # Turuncu
-            label_bg = (255, 147, 0)
+            box_color = (255, 147, 0)   # orange
         elif class_name == 'adult':
-            box_color = (0, 200, 255)  # Cyan
-            label_bg = (0, 200, 255)
+            box_color = (0, 200, 255)   # cyan
         else:
-            box_color = (147, 20, 255)  # Mor
-            label_bg = (147, 20, 255)
+            box_color = (147, 20, 255)  # purple
 
-        # Yarı saydam bbox dolgusu
+        # Semi-transparent bbox fill
         overlay = image.copy()
         cv2.rectangle(overlay, (x1, y1), (x2, y2), box_color, -1)
         cv2.addWeighted(overlay, 0.15, image, 0.85, 0, image)
 
-        # Bbox çerçevesi
+        # Bbox border
         cv2.rectangle(image, (x1, y1), (x2, y2), box_color, 1, cv2.LINE_AA)
 
         # Label
         label = f"{class_name} {conf:.0%}"
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 0.45
-        font_thickness = 1
+        thickness = 1
+        (tw, th), _ = cv2.getTextSize(label, font, font_scale, thickness)
 
-        (tw, th), baseline = cv2.getTextSize(label, font, font_scale, font_thickness)
+        pad_x, pad_y = 6, 4
+        lx1 = x1
+        ly1 = y1 - th - pad_y * 2
+        lx2 = x1 + tw + pad_x * 2
+        ly2 = y1
 
-        # Pill şeklinde label arka planı
-        padding_x = 6
-        padding_y = 4
-        label_x1 = x1
-        label_y1 = y1 - th - padding_y * 2
-        label_x2 = x1 + tw + padding_x * 2
-        label_y2 = y1
-
-        # Rounded rectangle için
-        radius = 5
+        # Rounded label background
+        r = 5
         overlay2 = image.copy()
-        cv2.rectangle(overlay2, (label_x1 + radius, label_y1), (label_x2 - radius, label_y2), label_bg, -1)
-        cv2.rectangle(overlay2, (label_x1, label_y1 + radius), (label_x2, label_y2 - radius), label_bg, -1)
-        cv2.circle(overlay2, (label_x1 + radius, label_y1 + radius), radius, label_bg, -1)
-        cv2.circle(overlay2, (label_x2 - radius, label_y1 + radius), radius, label_bg, -1)
-        cv2.circle(overlay2, (label_x1 + radius, label_y2 - radius), radius, label_bg, -1)
-        cv2.circle(overlay2, (label_x2 - radius, label_y2 - radius), radius, label_bg, -1)
+        cv2.rectangle(overlay2, (lx1 + r, ly1), (lx2 - r, ly2), box_color, -1)
+        cv2.rectangle(overlay2, (lx1, ly1 + r), (lx2, ly2 - r), box_color, -1)
+        cv2.circle(overlay2, (lx1 + r, ly1 + r), r, box_color, -1)
+        cv2.circle(overlay2, (lx2 - r, ly1 + r), r, box_color, -1)
+        cv2.circle(overlay2, (lx1 + r, ly2 - r), r, box_color, -1)
+        cv2.circle(overlay2, (lx2 - r, ly2 - r), r, box_color, -1)
         cv2.addWeighted(overlay2, 0.85, image, 0.15, 0, image)
 
-        # Label text (gölgeli)
-        text_x = label_x1 + padding_x
-        text_y = label_y2 - padding_y
-        cv2.putText(image, label, (text_x+1, text_y+1), font, font_scale, (0, 0, 0), font_thickness, cv2.LINE_AA)
-        cv2.putText(image, label, (text_x, text_y), font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+        # Label text with shadow
+        tx = lx1 + pad_x
+        ty = ly2 - pad_y
+        cv2.putText(image, label, (tx + 1, ty + 1), font, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
+        cv2.putText(image, label, (tx, ty), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
 
-    
+        # Status text below bbox
+        if status and status != "Active":
+            status_label = f"{status}"
+            (sw, sh), _ = cv2.getTextSize(status_label, font, 0.4, 1)
+            sx = x1
+            sy = y2 + sh + 6
+            cv2.putText(image, status_label, (sx + 1, sy + 1), font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+            cv2.putText(image, status_label, (sx, sy), font, 0.4, color, 1, cv2.LINE_AA)
+
     def process_video(self, video_path, output_path=None, show_preview=True):
-        """Video dosyasındaki insanları takip eder"""
+        """Process video file with dual-model detection."""
         cap = cv2.VideoCapture(video_path)
-        
         if not cap.isOpened():
-            print(f"Hata: Video dosyası açılamadı: {video_path}")
+            print(f"Error: Cannot open video: {video_path}")
             return
-        
-        # Update FPS
-        self.fps = int(cap.get(cv2.CAP_PROP_FPS))
+
+        self.fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        
-        # Çıkış video yazıcısı
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
         out = None
         if output_path:
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            try:
+                fourcc = cv2.VideoWriter_fourcc(*'avc1')
+            except Exception:
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             out = cv2.VideoWriter(output_path, fourcc, self.fps, (width, height))
-        
+
+        print(f"Processing: {video_path}")
+        print(f"Resolution: {width}x{height}, FPS: {self.fps}, Frames: {total_frames}")
+        print("Press 'q' to stop.")
+
         frame_count = 0
-        
-        print(f"Video işleniyor: {video_path}")
-        print(f"Çözünürlük: {width}x{height}, FPS: {self.fps}")
-        print("Çıkmak için 'q' tuşuna basın.")
-        
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
-            
-            # Detect and Track
-            results, annotated_frame = self.detect_and_track(frame)
-            
-            # Info overlay
-            cv2.putText(annotated_frame, f"Frame: {frame_count}", (10, 30), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
-            
-            # Save and Show
+
+            _, annotated = self.detect_and_track(frame)
+
+            # Frame counter
+            cv2.putText(annotated, f"Frame: {frame_count}", (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
             if out:
-                out.write(annotated_frame)
-            
+                out.write(annotated)
+
             if show_preview:
-                cv2.imshow('Havuz Guvenlik Takibi', annotated_frame)
+                cv2.imshow('Pool Safety Detection', annotated)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
-                    print("Kullanıcı tarafından durduruldu")
+                    print("Stopped by user")
                     break
-            
+
             frame_count += 1
-        
+            if frame_count % 100 == 0:
+                print(f"  [{frame_count}/{total_frames}] frames processed")
+
         cap.release()
         if out:
             out.release()
         cv2.destroyAllWindows()
-        print(f"\nİşlem tamamlandı! Toplam frame: {frame_count}")
+        print(f"Done! Total frames: {frame_count}")
+        if output_path:
+            print(f"Output saved: {output_path}")
 
     def process_image(self, image_path, output_path=None, show_preview=True):
-        """Görüntü işleme - Takip geçmişi olmadan sadece anlık analiz"""
-        # Not: Tek resimde hareket analizi yapılamaz, sadece poz analizi yapılır
+        """Process a single image."""
         image = cv2.imread(image_path)
-        if image is None: 
-            print("Hata: Resim açılamadı")
+        if image is None:
+            print(f"Error: Cannot open image: {image_path}")
             return
-            
-        results, annotated_image = self.detect_and_track(image)
-        
+
+        _, annotated = self.detect_and_track(image)
+
         if output_path:
-            cv2.imwrite(output_path, annotated_image)
-            print(f"Kaydedildi: {output_path}")
-            
+            cv2.imwrite(output_path, annotated)
+            print(f"Saved: {output_path}")
+
         if show_preview:
-            cv2.imshow('Sonuc', annotated_image)
+            cv2.imshow('Detection Result', annotated)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
     def process_webcam(self, camera_index=0):
-        """Webcam üzerinden canlı takip"""
+        """Real-time webcam detection."""
         cap = cv2.VideoCapture(camera_index)
         if not cap.isOpened():
-            print("Hata: Webcam açılamadı")
+            print("Error: Cannot open webcam")
             return
-            
-        self.fps = 30 # Webcam varsayılan
-        print("Webcam başlatıldı...")
-        
+
+        self.fps = 30
+        print("Webcam started. Press 'q' to quit.")
+
         while True:
             ret, frame = cap.read()
-            if not ret: break
-            
-            results, annotated_frame = self.detect_and_track(frame)
-            
-            cv2.imshow('Canlı Havuz Takibi', annotated_frame)
+            if not ret:
+                break
+
+            _, annotated = self.detect_and_track(frame)
+
+            cv2.imshow('Pool Safety - Live', annotated)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-                
+
         cap.release()
         cv2.destroyAllWindows()
 
 
 def main():
-    parser = argparse.ArgumentParser(description='YOLO ile Havuz Etrafındaki İnsan Tespiti')
-    parser.add_argument('--input', '-i', type=str, help='Giriş dosyası (görüntü veya video)')
-    parser.add_argument('--output', '-o', type=str, help='Çıkış dosyası yolu')
-    parser.add_argument('--model', '-m', type=str, default='yolov8n-pose.pt', 
-                       help='YOLO model dosyası (varsayılan: yolov8n-pose.pt)')
-    parser.add_argument('--conf', '-c', type=float, default=0.25, 
-                       help='Güven eşiği (varsayılan: 0.25)')
-    parser.add_argument('--webcam', '-w', action='store_true', 
-                       help='Webcam kullan (giriş dosyası yerine)')
-    parser.add_argument('--no-preview', action='store_true', 
-                       help='Önizlemeyi gösterme')
-    
+    parser = argparse.ArgumentParser(
+        description='Pool Safety System - Adult/Child Detection + Pose Estimation'
+    )
+    parser.add_argument('--input', '-i', type=str,
+                        help='Input file (image or video)')
+    parser.add_argument('--output', '-o', type=str,
+                        help='Output file path')
+    parser.add_argument('--model', '-m', type=str, default='best_pool_adult_child.pt',
+                        help='Custom detection model (default: best_pool_adult_child.pt)')
+    parser.add_argument('--pose-model', '-p', type=str, default='yolov8n-pose.pt',
+                        help='Pose estimation model (default: yolov8n-pose.pt)')
+    parser.add_argument('--conf', '-c', type=float, default=0.25,
+                        help='Confidence threshold (default: 0.25)')
+    parser.add_argument('--webcam', '-w', action='store_true',
+                        help='Use webcam')
+    parser.add_argument('--no-preview', action='store_true',
+                        help='Disable live preview')
+
     args = parser.parse_args()
-    
-    # Detector oluştur
-    detector = PoolPersonDetector(model_path=args.model, conf_threshold=args.conf)
-    
-    # Webcam modu
+
+    detector = PoolPersonDetector(
+        model_path=args.model,
+        pose_model_path=args.pose_model,
+        conf_threshold=args.conf
+    )
+
     if args.webcam:
         detector.process_webcam()
-    # Giriş dosyası var
     elif args.input:
         input_path = Path(args.input)
-        
         if not input_path.exists():
-            print(f"Hata: Dosya bulunamadı: {args.input}")
+            print(f"Error: File not found: {args.input}")
             return
-        
-        # Dosya tipine göre işle
+
         if input_path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.bmp']:
-            detector.process_image(args.input, args.output, show_preview=not args.no_preview)
+            detector.process_image(args.input, args.output,
+                                   show_preview=not args.no_preview)
         elif input_path.suffix.lower() in ['.mp4', '.avi', '.mov', '.mkv']:
-            detector.process_video(args.input, args.output, show_preview=not args.no_preview)
+            detector.process_video(args.input, args.output,
+                                   show_preview=not args.no_preview)
         else:
-            print(f"Hata: Desteklenmeyen dosya formatı: {input_path.suffix}")
+            print(f"Error: Unsupported format: {input_path.suffix}")
     else:
-        print("Hata: Giriş dosyası veya --webcam parametresi gerekli.")
-        print("Kullanım: python pool_person_detection.py --input <dosya> [--output <çıkış>]")
-        print("         python pool_person_detection.py --webcam")
+        parser.print_help()
 
 
 if __name__ == "__main__":
     main()
-
