@@ -17,6 +17,16 @@ Video Frame
     └──► Annotated Frame ◄── Movement Analysis + Head Visibility ──► Status
 ```
 
+## Examples
+
+<p align="center">
+  <img src="docs/detection_examples.jpeg" width="100%" alt="Detection Examples">
+</p>
+
+<p align="center">
+  <img src="docs/detection_grid.jpeg" width="100%" alt="Detection Results Grid">
+</p>
+
 ## Features
 
 - **Dual-Model Architecture** - Custom YOLOv26m for adult/child classification + YOLOv8-pose for skeleton keypoints
@@ -169,6 +179,12 @@ The project includes a Google Colab training pipeline in `notebooks/train_colab.
 1. Label images with 2 classes: `adult` (0) and `child` (1) using [CVAT](https://www.cvat.ai/) or [Roboflow](https://roboflow.com/)
 2. Export labels in YOLO format
 3. Upload images and labels to Google Drive
+
+### Training Results
+
+<p align="center">
+  <img src="docs/training_results.jpeg" width="100%" alt="Training Results">
+</p>
 
 ### Training on Colab
 
