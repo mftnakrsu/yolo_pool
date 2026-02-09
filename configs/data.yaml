@@ -1,0 +1,9 @@
+# YOLO Pool - Dataset Configuration Template
+# Adjust paths to your dataset location before training.
+
+train: dataset/images/train
+val: dataset/images/val
+test: dataset/images/test
+
+nc: 2
+names: ['adult', 'child']
