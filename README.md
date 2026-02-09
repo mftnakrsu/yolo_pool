@@ -1,26 +1,32 @@
 # YOLO Pool - Swimming Pool Safety System
 
-A real-time pool safety system that detects **adults and children** around swimming pools using a custom-trained YOLOv26m model, combined with **pose estimation** for skeleton visualization and **drowning detection** through movement and head visibility analysis.
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![YOLO](https://img.shields.io/badge/YOLO-v26m-orange.svg)](https://docs.ultralytics.com/)
+
+Real-time pool safety system that detects **adults and children** around swimming pools using a custom-trained YOLOv26m model, combined with **pose estimation** for skeleton visualization and **drowning detection** through movement analysis.
+
+## Architecture
+
+```
+Video Frame
+    ├──► Custom YOLOv26m ──► Adult/Child BBoxes ──► ByteTrack Tracking
+    │                                                       │
+    ├──► YOLOv8-pose ──► 17 COCO Keypoints ── IoU Match ◄──┘
+    │                                              │
+    └──► Annotated Frame ◄── Movement Analysis + Head Visibility ──► Status
+```
 
 ## Features
 
-- **Dual-Model Architecture**: Custom YOLOv26m for adult/child classification + YOLOv8-pose for skeleton keypoints
-- **Drowning Detection**: Automatic alerts based on stationary behavior and head visibility
-- **Pose Estimation**: 17-point COCO skeleton overlay with color-coded joints
-- **Multi-Person Tracking**: ByteTrack-based tracking with per-person danger scoring
-- **Real-time Webcam**: Live detection with FPS display and adjustable confidence
-- **Video/Image Processing**: Batch processing with H.264 output
+- **Dual-Model Architecture** - Custom YOLOv26m for adult/child classification + YOLOv8-pose for skeleton keypoints
+- **Drowning Detection** - Automatic alerts based on stationary behavior and head visibility
+- **Pose Estimation** - 17-point COCO skeleton overlay with color-coded joints
+- **Multi-Person Tracking** - ByteTrack-based tracking with per-person danger scoring
+- **Real-time Webcam** - Live detection with FPS display and adjustable confidence
+- **Video/Image Processing** - Batch processing with H.264 output
 
-## How It Works
-
-The system runs two YOLO models simultaneously on each frame:
-
-1. **Custom YOLOv26m** detects people and classifies them as `adult` or `child`
-2. **YOLOv8-pose** extracts 17 body keypoints per person
-3. Detections are matched to pose data via **IoU** (Intersection over Union)
-4. Each person is tracked over time to analyze movement patterns
-
-### Drowning Detection Algorithm
+### Drowning Detection
 
 | Status | Color | Condition |
 |--------|-------|-----------|
@@ -37,6 +43,12 @@ cd yolo_pool
 pip install -r requirements.txt
 ```
 
+### Development Install
+
+```bash
+pip install -e .
+```
+
 ### Requirements
 
 - Python 3.8+
@@ -47,38 +59,38 @@ pip install -r requirements.txt
 ### Video Processing
 
 ```bash
-# With custom model + pose estimation
-python pool_person_detection.py -i video.mp4 -o output.mp4
+python detect.py -i video.mp4 -o output.mp4
 
-# Specify models explicitly
-python pool_person_detection.py -i video.mp4 -o output.mp4 \
+# Specify models
+python detect.py -i video.mp4 -o output.mp4 \
     --model best_pool_adult_child.pt \
     --pose-model yolov8n-pose.pt
 
-# Headless (no preview window)
-python pool_person_detection.py -i video.mp4 -o output.mp4 --no-preview
+# Headless (no preview)
+python detect.py -i video.mp4 -o output.mp4 --no-preview
 ```
 
 ### Image Processing
 
 ```bash
-python pool_person_detection.py -i photo.jpg -o result.jpg
+python detect.py -i photo.jpg -o result.jpg
 ```
 
 ### Webcam (Real-time)
 
 ```bash
 # Basic
-python pool_person_detection.py --webcam
+python detect.py --webcam
 
 # Advanced real-time with FPS display and controls
-python realtime_detection.py
+python realtime.py
 
-# With custom settings
-python realtime_detection.py --model best_pool_adult_child.pt --conf 0.4 --camera 0
+# Custom settings
+python realtime.py --model best_pool_adult_child.pt --conf 0.4 --camera 0
 ```
 
 **Real-time controls:**
+
 | Key | Action |
 |-----|--------|
 | `q` | Quit |
@@ -88,7 +100,7 @@ python realtime_detection.py --model best_pool_adult_child.pt --conf 0.4 --camer
 ### IP Camera (RTSP)
 
 ```bash
-python pool_person_detection.py -i "rtsp://user:pass@ip:port/stream"
+python detect.py -i "rtsp://user:pass@ip:port/stream"
 ```
 
 ### Parameters
@@ -103,19 +115,64 @@ python pool_person_detection.py -i "rtsp://user:pass@ip:port/stream"
 | `-w, --webcam` | Use webcam | `False` |
 | `--no-preview` | Disable live preview | `False` |
 
-## Training Your Own Model
+### Python API
 
-The project includes a ready-to-use Google Colab training pipeline.
+```python
+from yolo_pool import PoolPersonDetector
+
+detector = PoolPersonDetector(
+    model_path='best_pool_adult_child.pt',
+    pose_model_path='yolov8n-pose.pt',
+    conf_threshold=0.25
+)
+
+# Process video
+detector.process_video('input.mp4', 'output.mp4')
+
+# Process image
+detector.process_image('photo.jpg', 'result.jpg')
+
+# Webcam
+detector.process_webcam()
+```
+
+## Tools
+
+Utility scripts in `tools/` for dataset preparation and video processing:
+
+```bash
+# Auto-label images with YOLO
+python tools/auto_label.py --source frames/ --output dataset/
+
+# Extract frames from videos
+python tools/extract_frames.py --input videos/ --output frames/ --interval 30
+
+# Add pose overlay to videos
+python tools/add_pose_to_videos.py --folder videos/
+
+# Batch process videos with stylish bounding boxes
+python tools/batch_process.py --input videos/ --output processed/
+
+# Child-alone warning detection
+python tools/process_child_adult.py --input video.mp4
+
+# Split videos into segments
+python tools/split_videos.py --input video.mp4 --duration 6
+```
+
+## Training
+
+The project includes a Google Colab training pipeline in `notebooks/train_colab.ipynb`.
 
 ### Dataset Preparation
 
-1. Label your images with 2 classes: `adult` (0) and `child` (1) using [CVAT](https://www.cvat.ai/) or [Roboflow](https://roboflow.com/)
+1. Label images with 2 classes: `adult` (0) and `child` (1) using [CVAT](https://www.cvat.ai/) or [Roboflow](https://roboflow.com/)
 2. Export labels in YOLO format
 3. Upload images and labels to Google Drive
 
 ### Training on Colab
 
-1. Upload `train_colab.ipynb` to Google Colab
+1. Upload `notebooks/train_colab.ipynb` to Google Colab
 2. Set runtime to **GPU** (T4 or better)
 3. Run all cells - the notebook will:
    - Mount your Drive and extract the dataset
@@ -124,26 +181,52 @@ The project includes a ready-to-use Google Colab training pipeline.
    - Train YOLOv26m for 100 epochs
    - Save the best model to Drive
 
-```bash
-# Or use the auto-labeling script to generate initial labels
-python auto_label.py
+### Dataset
+
+The `dataset/` directory contains 2,540 labeled pool images:
+
+```
+dataset/
+├── images/   # 2,540 JPEG images (~470 MB)
+└── labels/   # 2,540 YOLO format labels (~8.5 MB)
 ```
 
 ## Project Structure
 
 ```
 yolo_pool/
-├── pool_person_detection.py      # Main: dual model detection + pose + drowning
-├── realtime_detection.py         # Real-time webcam detection
-├── train_colab.py                # Google Colab training script
-├── train_colab.ipynb             # Colab notebook (same as above)
-├── auto_label.py                 # Auto-labeling with pretrained model
-├── add_pose_to_videos.py         # Add pose overlay to existing videos
-├── extract_frames.py             # Extract frames from videos for labeling
-├── batch_process_stylish.py      # Batch video processing with styled output
-├── process_child_adult_video.py  # Child-alone warning system
-├── split_videos.py               # Video segmentation utility
-├── requirements.txt              # Python dependencies
+├── detect.py                    # Main CLI: video/image/webcam detection
+├── realtime.py                  # Real-time webcam detection with controls
+│
+├── yolo_pool/                   # Python package
+│   ├── __init__.py
+│   ├── detector.py              # PoolPersonDetector class (core)
+│   ├── visualization.py         # Skeleton, bbox, status drawing
+│   └── utils.py                 # IoU, video helpers
+│
+├── tools/                       # Utility scripts
+│   ├── auto_label.py            # Auto-labeling with YOLO
+│   ├── extract_frames.py        # Frame extraction from videos
+│   ├── add_pose_to_videos.py    # Pose overlay for videos
+│   ├── batch_process.py         # Batch video processing
+│   ├── process_child_adult.py   # Child-alone warning system
+│   └── split_videos.py          # Video segmentation
+│
+├── notebooks/
+│   └── train_colab.ipynb        # Google Colab training notebook
+│
+├── configs/
+│   └── data.yaml                # Dataset config template
+│
+├── dataset/                     # Training dataset
+│   ├── images/                  # 2,540 labeled pool images
+│   └── labels/                  # YOLO format annotations
+│
+├── docs/
+│   └── architecture.md          # Dual model architecture details
+│
+├── requirements.txt             # Pinned dependencies
+├── LICENSE                      # MIT License
 └── README.md
 ```
 
@@ -163,13 +246,13 @@ yolo_pool/
 sudo nvpmodel -m 0
 sudo jetson_clocks
 
-# Export to TensorRT for faster inference
+# Export to TensorRT
 yolo export model=best_pool_adult_child.pt format=engine device=0
 
 # Run with TensorRT model
-python pool_person_detection.py -i video.mp4 --model best_pool_adult_child.engine
+python detect.py -i video.mp4 --model best_pool_adult_child.engine
 ```
 
 ## License
 
-MIT License
+MIT License - see [LICENSE](LICENSE) for details.

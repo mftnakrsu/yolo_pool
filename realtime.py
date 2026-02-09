@@ -1,6 +1,7 @@
-"""
-Real-time Pool Safety Detection
-Dual model: Custom YOLOv26m (adult/child) + Pose estimation (skeleton)
+#!/usr/bin/env python3
+"""Real-time Pool Safety Detection.
+
+Dual model: Custom YOLOv26m (adult/child) + Pose estimation (skeleton).
 Webcam with live FPS, confidence control, and screenshot capture.
 """
 
@@ -9,63 +10,8 @@ from ultralytics import YOLO
 import argparse
 import time
 
-# Default skeleton connections (COCO 17 keypoints, 1-indexed)
-SKELETON = [
-    [16, 14], [14, 12], [17, 15], [15, 13], [12, 13],
-    [6, 12], [7, 13], [6, 7],
-    [6, 8], [7, 9], [8, 10], [9, 11],
-    [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]
-]
-
-LEFT_INDICES = {1, 3, 5, 7, 9, 11, 13, 15}
-RIGHT_INDICES = {2, 4, 6, 8, 10, 12, 14, 16}
-
-# Class colors (BGR)
-CLASS_COLORS = {
-    'adult': (0, 200, 255),   # cyan
-    'child': (255, 147, 0),   # orange
-}
-
-
-def compute_iou(box1, box2):
-    """IoU between two [x1, y1, x2, y2] boxes."""
-    x1 = max(box1[0], box2[0])
-    y1 = max(box1[1], box2[1])
-    x2 = min(box1[2], box2[2])
-    y2 = min(box1[3], box2[3])
-    inter = max(0, x2 - x1) * max(0, y2 - y1)
-    area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
-    area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
-    union = area1 + area2 - inter
-    return inter / union if union > 0 else 0.0
-
-
-def draw_skeleton(frame, keypoints):
-    """Draw pose skeleton on frame."""
-    kpt_color = (0, 255, 255)
-    left_color = (255, 128, 0)
-    right_color = (51, 153, 255)
-
-    for idx, kpt in enumerate(keypoints):
-        x, y, conf = kpt
-        if conf > 0.5:
-            if idx in LEFT_INDICES:
-                c = left_color
-            elif idx in RIGHT_INDICES:
-                c = right_color
-            else:
-                c = kpt_color
-            cv2.circle(frame, (int(x), int(y)), 3, c, -1)
-            cv2.circle(frame, (int(x), int(y)), 4, (0, 0, 0), 1)
-
-    for i1, i2 in SKELETON:
-        i1 -= 1
-        i2 -= 1
-        if i1 < len(keypoints) and i2 < len(keypoints):
-            k1, k2 = keypoints[i1], keypoints[i2]
-            if k1[2] > 0.5 and k2[2] > 0.5:
-                cv2.line(frame, (int(k1[0]), int(k1[1])),
-                         (int(k2[0]), int(k2[1])), (0, 255, 0), 1, cv2.LINE_AA)
+from yolo_pool.utils import compute_iou
+from yolo_pool.visualization import draw_skeleton, CLASS_COLORS
 
 
 def main():

@@ -8,18 +8,15 @@ env/
 venv/
 ENV/
 .venv
+*.egg-info/
+dist/
+build/
 
-# YOLO Models (büyük dosyalar)
+# YOLO Models (large files)
 *.pt
 *.weights
 *.onnx
-
-# Output images (test çıktıları) - Web sitesinde kullanılıyor, commit edilmeli
-# output_*.png
-# output_*.jpg
-
-# Screenshots (test görselleri) - Web sitesinde kullanılıyor, commit edilmeli
-# Screenshot*.png
+*.engine
 
 # IDE
 .vscode/
@@ -39,26 +36,28 @@ Thumbs.db
 .env
 .env.local
 
-# Node modules (eğer eklenirse)
+# Node modules
 node_modules/
 
-# Hardware documentation
-HARDWARE.md
-
-# Large Video Files (Original Sources)
+# Large Video Files
+*.mov
+*.avi
 WhatsApp Video *.mp4
-demo_havuz.mov
-demo_output.mp4
-demo_result_clean.mp4
 
-# Datasets
+# Output files
+output_*.mp4
+output_*.jpg
+output_*.png
+screenshot_*.jpg
+
+# Old datasets
 child_adult_dataset/
 child and adult annotation.v1i.yolov8.zip
 dataset_new/
 extracted_frames/
 
-# Output Media (Keep demos/ folder, ignore others if needed)
-# output_*.mp4
-# But we want to track demos/ so we don't ignore it.
+# Dataset preview (not needed in repo)
+dataset/preview/
 
-
+# Training runs
+runs/
