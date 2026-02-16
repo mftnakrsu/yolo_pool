@@ -91,7 +91,7 @@ Video Frame
 
 ### Overview
 
-The model was trained on a **custom dataset of 14,114 labeled instances** across **3,374 images** of swimming pool environments.
+The model was trained on a **custom dataset of 14,114 labeled instances** across **24,000 images** of swimming pool environments.
 
 | Property | Value |
 |----------|-------|
