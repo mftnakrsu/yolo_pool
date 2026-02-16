@@ -95,7 +95,7 @@ The model was trained on a **custom dataset of 14,114 labeled instances** across
 
 | Property | Value |
 |----------|-------|
-| **Total Images** | 3,374 |
+| **Total Images** | 24k |
 | **Total Instances** | 14,114 |
 | **Adult Instances** | 6,975 (across 2,385 images) |
 | **Child Instances** | 7,139 (across 2,532 images) |
