@@ -129,12 +129,12 @@ names: ['adult', 'child']
 
 ### Local Dataset
 
-The `dataset/` directory contains 2,540 labeled pool images for local development:
+The `dataset/` directory contains 5043 labeled pool images for local development:
 
 ```
 dataset/
-├── images/   # 2,540 JPEG images (~470 MB)
-└── labels/   # 2,540 YOLO format labels (~8.5 MB)
+├── images/   # 5043 JPEG images (~470 MB)
+└── labels/   # 5043 YOLO format labels (~8.5 MB)
 ```
 
 ---
